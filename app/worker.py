@@ -60,6 +60,7 @@ class AnalysisWorker(QThread):
             str(self._analyzer),
             "--log", str(self._bbl),
             "--name", "result",
+            "--blackbox_decode", str(self._blackbox),
             "--show", "N",
         ]
 
