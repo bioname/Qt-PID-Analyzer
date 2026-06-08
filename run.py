@@ -153,7 +153,7 @@ def _bootstrap() -> None:
     # 3. Install / verify packages
     print("[run.py] Installing / verifying dependencies …", flush=True)
     result = subprocess.run(
-        [str(venv_py), "-m", "pip", "install", "--quiet", "--upgrade", *PACKAGES],
+        [str(venv_py), "-m", "pip", "install", "--upgrade", *PACKAGES],
     )
     if result.returncode != 0:
         print("[run.py] ERROR: pip install failed. Check your internet connection.",
