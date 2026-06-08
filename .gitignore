@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Compiled blackbox binary (built locally)
+bin/blackbox_decode
+bin/blackbox_decode.exe
+
+# Logs / data (user-generated)
+data/logs/*/
+
+# macOS
+.DS_Store
+
+# Qt / IDE
+*.pyc
+.idea/
+.vscode/

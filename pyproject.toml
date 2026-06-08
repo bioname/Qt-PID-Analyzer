@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "qt-pid-analyzer"
+version = "0.1.0"
+description = "Qt GUI wrapper for PID-Analyzer — Betaflight blackbox log analysis"
+requires-python = ">=3.8"
+dependencies = [
+    "PyQt6>=6.6.0",
+    "numpy>=1.26.0",
+    "scipy>=1.12.0",
+    "pandas>=2.2.0",
+    "matplotlib>=3.8.0",
+    "six>=1.16.0",
+]
+
+[project.scripts]
+qt-pid-analyzer = "app.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]

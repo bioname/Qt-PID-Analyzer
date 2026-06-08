@@ -1,0 +1,6 @@
+[submodule "vendor/PID-Analyzer"]
+	path = vendor/PID-Analyzer
+	url = https://github.com/bioname/PID-Analyzer
+[submodule "vendor/blackbox-tools"]
+	path = vendor/blackbox-tools
+	url = https://github.com/cleanflight/blackbox-tools
