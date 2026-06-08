@@ -97,8 +97,8 @@ class PlotViewer(QTabWidget):
         self.setStyleSheet(_TAB_STYLE)
         self.setDocumentMode(True)
 
-        container_pid, self._lbl_pid = _image_tab()
         container_noise, self._lbl_noise = _image_tab()
+        container_response, self._lbl_response = _image_tab()
 
         self._log_view = QPlainTextEdit()
         self._log_view.setReadOnly(True)
@@ -114,22 +114,24 @@ class PlotViewer(QTabWidget):
             "}"
         )
 
-        self.addTab(container_pid, "PID Response")
-        self.addTab(container_noise, "Noise")
-        self.addTab(self._log_view, "Log")
+        self.addTab(container_noise,    "Noise")
+        self.addTab(container_response, "Step Response")
+        self.addTab(self._log_view,     "Log")
 
     # ── Public API ────────────────────────────────────────────────────
 
     def load_session(self, session_dir: Path) -> None:
         """Load all outputs for the given session folder."""
-        pngs = sorted(session_dir.glob("**/*.png"))
-        self._load_png(self._lbl_pid,   pngs[0] if len(pngs) > 0 else None)
-        self._load_png(self._lbl_noise, pngs[1] if len(pngs) > 1 else None)
+        pngs = list(session_dir.rglob("*.png"))
+        noise_png    = next((p for p in pngs if p.name.endswith("_noise.png")),    None)
+        response_png = next((p for p in pngs if p.name.endswith("_response.png")), None)
+        self._load_png(self._lbl_noise,    noise_png)
+        self._load_png(self._lbl_response, response_png)
         self._load_log(session_dir / "analyzer.log")
 
     def show_placeholder(self) -> None:
-        self._lbl_pid.clear_image("No data — drop a .BBL log to begin")
         self._lbl_noise.clear_image("No data — drop a .BBL log to begin")
+        self._lbl_response.clear_image("No data — drop a .BBL log to begin")
         self._log_view.clear()
 
     # ── Internals ─────────────────────────────────────────────────────

@@ -65,6 +65,7 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(_WIN_STYLE)
 
         self._worker: AnalysisWorker | None = None
+        self._is_busy: bool = False
 
         # ── Widgets ───────────────────────────────────────────────────
         self._tree = LogTree()
@@ -102,6 +103,7 @@ class MainWindow(QMainWindow):
         # ── Signals ───────────────────────────────────────────────────
         self._tree.file_dropped.connect(self._on_file_dropped)
         self._tree.session_selected.connect(self._viewer.load_session)
+        self._tree.session_deleted.connect(self._on_session_deleted)
 
         # ── Load existing sessions ────────────────────────────────────
         self._tree.load_sessions(scan_sessions())
@@ -109,12 +111,13 @@ class MainWindow(QMainWindow):
     # ── Slots ─────────────────────────────────────────────────────────
 
     def _on_file_dropped(self, bbl_path: Path) -> None:
-        if self._worker and self._worker.isRunning():
+        if self._is_busy:
             QMessageBox.warning(
                 self, "Busy",
                 "An analysis is already running.\nPlease wait for it to finish."
             )
             return
+        self._is_busy = True
 
         session_dir = create_session(bbl_path)
         bbl_copy = session_dir / bbl_path.name
@@ -128,7 +131,7 @@ class MainWindow(QMainWindow):
         self._worker.progress.connect(self._set_status)
         self._worker.done.connect(self._on_done)
         self._worker.error.connect(self._on_error)
-        self._worker.finished.connect(lambda: self._progress.setVisible(False))
+        self._worker.finished.connect(self._on_worker_finished)
 
         self._progress.setVisible(True)
         self._set_status(f"Analyzing  {bbl_path.name} …")
@@ -146,9 +149,16 @@ class MainWindow(QMainWindow):
         self._viewer.load_session(session_dir)
         self._set_status(f"Done — {stem}")
 
+    def _on_worker_finished(self) -> None:
+        self._is_busy = False
+        self._progress.setVisible(False)
+
     def _on_error(self, msg: str) -> None:
         self._set_status("Error — see details")
         QMessageBox.critical(self, "Analysis Error", msg)
+
+    def _on_session_deleted(self, _: Path) -> None:
+        self._viewer.show_placeholder()
 
     def _set_status(self, text: str) -> None:
         self._status_label.setText(text)

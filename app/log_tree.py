@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent, QFont
-from PyQt6.QtWidgets import QAbstractItemView, QTreeWidget, QTreeWidgetItem
+from PyQt6.QtGui import QAction, QDragEnterEvent, QDragLeaveEvent, QDropEvent, QFont
+from PyQt6.QtWidgets import QAbstractItemView, QMenu, QTreeWidget, QTreeWidgetItem
 
 _VALID_SUFFIXES = {".BBL", ".BFL", ".bbl", ".bfl"}
 
@@ -51,16 +51,19 @@ class LogTree(QTreeWidget):
 
     file_dropped = pyqtSignal(Path)
     session_selected = pyqtSignal(Path)
+    session_deleted = pyqtSignal(Path)   # emitted when user deletes a session
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setHeaderHidden(True)
         self.setColumnCount(1)
         self.setAcceptDrops(True)
-        self.setDragDropMode(QAbstractItemView.DragDropMode.DropOnly)
+        # NOTE: no DragDropMode — we handle external file drops ourselves
         self.setIndentation(14)
         self.setAnimated(True)
         self.setStyleSheet(_STYLE_NORMAL)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._show_context_menu)
 
         date_font = QFont()
         date_font.setBold(True)
@@ -161,3 +164,40 @@ class LogTree(QTreeWidget):
         data = item.data(0, Qt.ItemDataRole.UserRole)
         if isinstance(data, Path):
             self.session_selected.emit(data)
+
+    def _show_context_menu(self, pos) -> None:
+        item = self.itemAt(pos)
+        if item is None:
+            return
+        session_dir: Path | None = item.data(0, Qt.ItemDataRole.UserRole)
+        if not isinstance(session_dir, Path):
+            return
+
+        menu = QMenu(self)
+        menu.setStyleSheet(
+            "QMenu { background:#121b25; color:#aebdcb; border:1px solid #1f2c3b; }"
+            "QMenu::item:selected { background:#1f3a5f; color:#e6edf4; }"
+        )
+        act_del: QAction = menu.addAction("Delete session")
+        act_del.setIcon(self.style().standardIcon(
+            self.style().StandardPixmap.SP_TrashIcon))
+        chosen = menu.exec(self.viewport().mapToGlobal(pos))
+        if chosen == act_del:
+            self._delete_session(item, session_dir)
+
+    def _delete_session(self, item: QTreeWidgetItem, session_dir: Path) -> None:
+        import shutil
+        try:
+            shutil.rmtree(session_dir)
+        except Exception:
+            pass
+
+        parent = item.parent()
+        if parent:
+            parent.removeChild(item)
+            # Remove date group if empty
+            if parent.childCount() == 0:
+                idx = self.indexOfTopLevelItem(parent)
+                self.takeTopLevelItem(idx)
+
+        self.session_deleted.emit(session_dir)
