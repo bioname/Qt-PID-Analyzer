@@ -60,15 +60,37 @@ def _in_venv() -> bool:
 
 
 # ── Print distro hints when pip is not available ──────────────────────────────
-def _print_no_pip_hints() -> None:
-    print("\n[run.py] ERROR: pip is not available in the virtual environment.", file=sys.stderr)
+def _check_missing(venv_py: Path) -> list[str]:
+    """Return list of package names not importable inside venv_py."""
+    code = (
+        "import sys\n"
+        + "".join(
+            f"try:\n    import {p}\nexcept ImportError:\n    print('{p}')\n"
+            for p in PACKAGES
+        )
+    )
+    result = subprocess.run(
+        [str(venv_py), "-c", code],
+        capture_output=True, text=True,
+    )
+    return result.stdout.strip().splitlines()
+
+
+def _print_no_pip_hints(missing: list[str] | None = None) -> None:
+    pkgs = missing or list(_HINTS.keys())
+    print("\n[run.py] ERROR: pip is not available and some packages are missing.",
+          file=sys.stderr)
     print("[run.py] Install the following packages using your system package manager:\n",
           file=sys.stderr)
-    for pkg, hints in _HINTS.items():
+    for pkg in pkgs:
+        hints = _HINTS.get(pkg, {})
         print(f"  {pkg}", file=sys.stderr)
-        print(f"    Gentoo : emerge {hints['gentoo']}", file=sys.stderr)
-        print(f"    Debian : apt install {hints['debian']}", file=sys.stderr)
-        print(f"    Arch   : pacman -S {hints['arch']}", file=sys.stderr)
+        if hints.get("gentoo"):
+            print(f"    Gentoo : emerge {hints['gentoo']}", file=sys.stderr)
+        if hints.get("debian"):
+            print(f"    Debian : apt install {hints['debian']}", file=sys.stderr)
+        if hints.get("arch"):
+            print(f"    Arch   : pacman -S {hints['arch']}", file=sys.stderr)
     print("\n[run.py] Then run:  python run.py  again.", file=sys.stderr)
 
 
@@ -98,14 +120,35 @@ def _bootstrap() -> None:
         subprocess.run([sys.executable, "-m", "venv", str(VENV)], check=True)
         print("[run.py] Virtual environment created.", flush=True)
 
-    # 2. Check pip is available inside the venv
+    # 2. Check pip is available inside the venv; if not, recreate with system packages
     pip_check = subprocess.run(
         [str(venv_py), "-m", "pip", "--version"],
         capture_output=True,
     )
     if pip_check.returncode != 0:
-        _print_no_pip_hints()
-        sys.exit(1)
+        print("[run.py] pip not found in venv — retrying with --system-site-packages …",
+              flush=True)
+        import shutil
+        shutil.rmtree(str(VENV), ignore_errors=True)
+        subprocess.run(
+            [sys.executable, "-m", "venv", "--system-site-packages", str(VENV)],
+            check=True,
+        )
+        # Check again — if still no pip, show distro hints and exit
+        pip_check2 = subprocess.run(
+            [str(venv_py), "-m", "pip", "--version"],
+            capture_output=True,
+        )
+        if pip_check2.returncode != 0:
+            # At least check if all needed modules are importable from system packages
+            missing = _check_missing(venv_py)
+            if not missing:
+                print("[run.py] All packages available via system site-packages. OK.",
+                      flush=True)
+                _reexec(venv_py)
+                return
+            _print_no_pip_hints(missing)
+            sys.exit(1)
 
     # 3. Install / verify packages
     print("[run.py] Installing / verifying dependencies …", flush=True)
