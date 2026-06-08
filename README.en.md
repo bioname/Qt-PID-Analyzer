@@ -2,7 +2,10 @@
 
 > [Ukrainian version → README.md](README.md)
 
+![Qt-PID-Analyzer screenshot](images/screenshot.png)
+
 A Qt desktop application for analysing Betaflight blackbox logs.
+
 A graphical wrapper around [PID-Analyzer](https://github.com/bioname/PID-Analyzer)
 with a session tree, drag-and-drop input and a built-in result viewer.
 
@@ -18,11 +21,10 @@ with a session tree, drag-and-drop input and a built-in result viewer.
    - **Step Response** — PID step-response plot
    - **Log** — plain-text analyser output
 
----
 
 ## Repository layout
 
-```
+```raw
 Qt-PID-Analyzer/
 ├── app/
 │   ├── main.py          # QApplication + dark palette
@@ -45,7 +47,6 @@ Qt-PID-Analyzer/
 └── pyproject.toml
 ```
 
----
 
 ## Requirements
 
@@ -56,7 +57,6 @@ Qt-PID-Analyzer/
   - Windows: MinGW via [MSYS2](https://www.msys2.org/)
 - Python packages are installed automatically on the first run
 
----
 
 ## Installation & running
 
@@ -72,7 +72,6 @@ scripts\build_blackbox.bat         # Windows (MSYS2 shell)
 
 # 3. Launch
 python3 run.py
-```
 
 On the **first launch** `run.py` automatically:
 - Creates `.venv/`
@@ -81,25 +80,18 @@ On the **first launch** `run.py` automatically:
 
 Every **subsequent** launch opens the window immediately.
 
----
 
 ## Gentoo (no pip)
 
-```bash
 # Install via portage
 emerge dev-python/PyQt6 dev-python/numpy dev-python/scipy \
        dev-python/pandas dev-python/matplotlib dev-python/six
 
 # Launch — bootstrap finds packages through system-site-packages
-python3 run.py
-```
 
 Or check dependencies manually:
-```bash
 python3 scripts/check_deps.py
-```
 
----
 
 ## Usage
 
@@ -109,7 +101,6 @@ python3 scripts/check_deps.py
 | Click a session in the tree | Opens its results |
 | Right-click a session → Delete | Removes session and its files |
 
----
 
 ## Submodules
 
@@ -118,7 +109,6 @@ python3 scripts/check_deps.py
 | `vendor/PID-Analyzer` | [bioname/PID-Analyzer](https://github.com/bioname/PID-Analyzer) | Python analyser |
 | `vendor/blackbox-tools` | [cleanflight/blackbox-tools](https://github.com/cleanflight/blackbox-tools) | `.BBL` to `.CSV` decoder |
 
----
 
 ## License
 

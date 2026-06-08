@@ -2,7 +2,10 @@
 
 > [English version → README.en.md](README.en.md)
 
+![Qt-PID-Analyzer screenshot](images/screenshot.png)
+
 Qt-додаток для аналізу Betaflight blackbox-логів. Обгортка над
+
 [PID-Analyzer](https://github.com/bioname/PID-Analyzer) з графічним інтерфейсом,
 деревом попередніх сесій та вбудованим переглядачем результатів.
 
@@ -18,11 +21,10 @@ Qt-додаток для аналізу Betaflight blackbox-логів. Обго
    - **Step Response** — графік відгуку ПІД-регулятора
    - **Log** — текстовий вивід аналізатора
 
----
 
 ## Структура репозиторію
 
-```
+```raw
 Qt-PID-Analyzer/
 ├── app/
 │   ├── main.py          # QApplication + темна палітра
@@ -45,7 +47,6 @@ Qt-PID-Analyzer/
 └── pyproject.toml
 ```
 
----
 
 ## Вимоги
 
@@ -56,7 +57,6 @@ Qt-PID-Analyzer/
   - Windows: MinGW через [MSYS2](https://www.msys2.org/)
 - Python-пакети встановлюються автоматично при першому запуску
 
----
 
 ## Встановлення та запуск
 
@@ -72,7 +72,6 @@ scripts\build_blackbox.bat         # Windows (MSYS2 shell)
 
 # 3. Запускаємо
 python3 run.py
-```
 
 При **першому запуску** `run.py` автоматично:
 - Створює `.venv/`
@@ -81,25 +80,18 @@ python3 run.py
 
 **Кожен наступний** запуск — вікно відкривається одразу.
 
----
 
 ## Gentoo (без pip)
 
-```bash
 # Встановлюємо через portage
 emerge dev-python/PyQt6 dev-python/numpy dev-python/scipy \
        dev-python/pandas dev-python/matplotlib dev-python/six
 
 # Запускаємо — bootstrap знайде пакети через system-site-packages
-python3 run.py
-```
 
 Або перевірте залежності вручну:
-```bash
 python3 scripts/check_deps.py
-```
 
----
 
 ## Використання
 
@@ -109,7 +101,6 @@ python3 scripts/check_deps.py
 | Клік на сесію в дереві | Відкриває її результати |
 | Правий клік на сесію → Delete | Видаляє сесію та файли |
 
----
 
 ## Субмодулі
 
@@ -118,7 +109,6 @@ python3 scripts/check_deps.py
 | `vendor/PID-Analyzer` | [bioname/PID-Analyzer](https://github.com/bioname/PID-Analyzer) | Python-аналізатор |
 | `vendor/blackbox-tools` | [cleanflight/blackbox-tools](https://github.com/cleanflight/blackbox-tools) | Декодер `.BBL` → `.CSV` |
 
----
 
 ## Ліцензія
 
