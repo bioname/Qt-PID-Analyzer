@@ -113,3 +113,4 @@ python3 scripts/check_deps.py
 ## Ліцензія
 
 GPLv3 — успадковано від `blackbox-tools` та оригінального `PID-Analyzer`.
+```
