@@ -1,6 +1,12 @@
 @echo off
-:: Build blackbox_decode from source on Windows using MinGW (MSYS2/MinGW64)
-:: Requires: MinGW make + gcc on PATH (e.g. from MSYS2: pacman -S mingw-w64-x86_64-gcc make)
+:: Build blackbox_decode from source on Windows using MSYS2
+:: Run this from the MSYS2 UCRT64/MinGW64 shell, NOT from CMD.
+::
+:: Prerequisites (install once):
+::   pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-make
+::
+:: Then run:
+::   scripts/build_blackbox.bat   (from MSYS2 shell, inside Qt-PID-Analyzer/)
 
 setlocal enabledelayedexpansion
 
@@ -21,12 +27,22 @@ if not exist "%BLACKBOX_SRC%\Makefile" (
 where gcc >nul 2>&1
 if errorlevel 1 (
     echo ERROR: gcc not found on PATH.
-    echo Install MSYS2 and run: pacman -S mingw-w64-x86_64-gcc make
+    echo Install via MSYS2: pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-make
+    exit /b 1
+)
+
+:: Prefer mingw32-make, fall back to make
+set MAKE_CMD=
+where mingw32-make >nul 2>&1 && set MAKE_CMD=mingw32-make
+if "%MAKE_CMD%"=="" where make >nul 2>&1 && set MAKE_CMD=make
+if "%MAKE_CMD%"=="" (
+    echo ERROR: make / mingw32-make not found on PATH.
+    echo Install via MSYS2: pacman -S mingw-w64-ucrt-x86_64-make
     exit /b 1
 )
 
 pushd "%BLACKBOX_SRC%"
-make obj/blackbox_decode
+%MAKE_CMD% obj/blackbox_decode
 popd
 
 if not exist "%BIN_DIR%" mkdir "%BIN_DIR%"

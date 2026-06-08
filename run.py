@@ -39,16 +39,18 @@ _HINTS: dict[str, dict[str, str]] = {
 }
 
 
-# ── Figure out the venv Python / pip executable paths ────────────────────────
+# ── Detect MSYS2 (reports win32 but uses Unix venv layout) ──────────────────────
+_IS_MSYS2 = bool(os.environ.get("MSYSTEM"))   # UCRT64 / MINGW64 / CLANG64 …
+_IS_WIN_NATIVE = sys.platform == "win32" and not _IS_MSYS2
+
+
+# ── Figure out the venv Python executable path ─────────────────────────────────
 def _venv_python() -> Path:
-    if sys.platform == "win32":
+    # Native Windows: Scripts\python.exe
+    # MSYS2 + all Unix: bin/python  (MSYS2 Python uses POSIX venv layout)
+    if _IS_WIN_NATIVE:
         return VENV / "Scripts" / "python.exe"
     return VENV / "bin" / "python"
-
-def _venv_pip() -> Path:
-    if sys.platform == "win32":
-        return VENV / "Scripts" / "pip.exe"
-    return VENV / "bin" / "pip"
 
 
 # ── Are we already running inside the venv? ───────────────────────────────────
@@ -96,11 +98,9 @@ def _print_no_pip_hints(missing: list[str] | None = None) -> None:
 
 # ── Re-execute this script with a different Python ────────────────────────────
 def _reexec(venv_py: Path) -> None:
-    """Replace current process with venv python (Unix) or spawn+wait (Windows)."""
+    """Replace current process with venv python (Unix) or spawn+wait (Windows/MSYS2)."""
     os.environ["VIRTUAL_ENV"] = str(VENV)
-    if sys.platform == "win32":
-        # os.execv works on Windows but does not replace the process cleanly in
-        # all shell environments; subprocess + sys.exit is more reliable there.
+    if _IS_WIN_NATIVE or _IS_MSYS2:
         result = subprocess.run(
             [str(venv_py), __file__] + sys.argv[1:],
             env=os.environ,
