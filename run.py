@@ -179,46 +179,61 @@ def _check_submodules() -> None:
         missing.append("vendor/PID-Analyzer")
     if not blackbox.exists():
         missing.append("vendor/blackbox-tools")
-    if missing:
-        # Check git is available first
+    if not missing:
+        return
+
+    # Check if this is a proper git repository
+    if not (ROOT / ".git").exists():
+        print("[run.py] ERROR: this does not appear to be a git repository.", file=sys.stderr)
+        print("[run.py] You may have downloaded the ZIP instead of cloning.", file=sys.stderr)
+        print("[run.py] Please clone with git:", file=sys.stderr)
+        print("  git clone --recurse-submodules https://github.com/bioname/Qt-PID-Analyzer",
+              file=sys.stderr)
+        sys.exit(1)
+
+    # Check git is available
+    try:
         git_check = subprocess.run(
             ["git", "--version"],
             capture_output=True,
         )
-        if git_check.returncode != 0:
-            print("[run.py] ERROR: git not found on PATH.", file=sys.stderr)
-            print("[run.py] Install git and re-run:", file=sys.stderr)
-            print("  Debian/Ubuntu : apt install git", file=sys.stderr)
-            print("  Arch          : pacman -S git", file=sys.stderr)
-            print("  Gentoo        : emerge dev-vcs/git", file=sys.stderr)
-            print("  MSYS2         : pacman -S git", file=sys.stderr)
-            print("  macOS         : xcode-select --install", file=sys.stderr)
-            print("  Windows       : https://git-scm.com/download/win", file=sys.stderr)
-            sys.exit(1)
+        git_ok = git_check.returncode == 0
+    except FileNotFoundError:
+        git_ok = False
 
-        print("[run.py] Submodules not initialised — running git submodule update …",
-              flush=True)
-        result = subprocess.run(
-            ["git", "submodule", "update", "--init", "--recursive"],
-            cwd=str(ROOT),
-        )
-        if result.returncode != 0:
-            print("[run.py] ERROR: git submodule update failed.", file=sys.stderr)
-            print("[run.py] Check your internet connection.", file=sys.stderr)
-            sys.exit(1)
-        # Verify again after clone
-        still_missing = []
-        if not analyzer.exists():
-            still_missing.append("vendor/PID-Analyzer")
-        if not blackbox.exists():
-            still_missing.append("vendor/blackbox-tools")
-        if still_missing:
-            print("[run.py] ERROR: submodules still missing after update:",
-                  file=sys.stderr)
-            for m in still_missing:
-                print(f"  {m}", file=sys.stderr)
-            sys.exit(1)
-        print("[run.py] Submodules OK.", flush=True)
+    if not git_ok:
+        print("[run.py] ERROR: git not found on PATH.", file=sys.stderr)
+        print("[run.py] Install git and re-run:", file=sys.stderr)
+        print("  Debian/Ubuntu : apt install git", file=sys.stderr)
+        print("  Arch          : pacman -S git", file=sys.stderr)
+        print("  Gentoo        : emerge dev-vcs/git", file=sys.stderr)
+        print("  MSYS2         : pacman -S git", file=sys.stderr)
+        print("  macOS         : xcode-select --install", file=sys.stderr)
+        print("  Windows       : https://git-scm.com/download/win", file=sys.stderr)
+        sys.exit(1)
+
+    print("[run.py] Submodules not initialised — running git submodule update …",
+          flush=True)
+    result = subprocess.run(
+        ["git", "submodule", "update", "--init", "--recursive"],
+        cwd=str(ROOT),
+    )
+    if result.returncode != 0:
+        print("[run.py] ERROR: git submodule update failed.", file=sys.stderr)
+        print("[run.py] Check your internet connection.", file=sys.stderr)
+        sys.exit(1)
+    # Verify again after clone
+    still_missing = []
+    if not analyzer.exists():
+        still_missing.append("vendor/PID-Analyzer")
+    if not blackbox.exists():
+        still_missing.append("vendor/blackbox-tools")
+    if still_missing:
+        print("[run.py] ERROR: submodules still missing after update:", file=sys.stderr)
+        for m in still_missing:
+            print(f"  {m}", file=sys.stderr)
+        sys.exit(1)
+    print("[run.py] Submodules OK.", flush=True)
 
     bb_bin = ROOT / "bin" / ("blackbox_decode.exe" if _IS_WIN_NATIVE else "blackbox_decode")
     if not bb_bin.exists():
