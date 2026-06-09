@@ -170,11 +170,41 @@ if not _in_venv():
     _bootstrap()
     sys.exit(0)   # unreachable after execv/reexec, satisfies linters
 
+# ── Submodule check ───────────────────────────────────────────────────────────
+def _check_submodules() -> None:
+    analyzer = ROOT / "vendor" / "PID-Analyzer" / "PID-Analyzer.py"
+    blackbox  = ROOT / "vendor" / "blackbox-tools" / "Makefile"
+    missing = []
+    if not analyzer.exists():
+        missing.append("vendor/PID-Analyzer")
+    if not blackbox.exists():
+        missing.append("vendor/blackbox-tools")
+    if missing:
+        print("[run.py] ERROR: git submodules not initialised:", file=sys.stderr)
+        for m in missing:
+            print(f"  missing: {m}", file=sys.stderr)
+        print("\n[run.py] Run:  git submodule update --init --recursive",
+              file=sys.stderr)
+        sys.exit(1)
+
+    bb_bin = ROOT / "bin" / ("blackbox_decode.exe" if _IS_WIN_NATIVE else "blackbox_decode")
+    if not bb_bin.exists():
+        print("[run.py] WARNING: blackbox_decode not built yet.", flush=True)
+        print("[run.py] Building now …", flush=True)
+        if _IS_WIN_NATIVE or _IS_MSYS2:
+            build_script = ROOT / "scripts" / "build_blackbox.bat"
+            result = subprocess.run([str(build_script)], shell=True)
+        else:
+            build_script = ROOT / "scripts" / "build_blackbox.sh"
+            result = subprocess.run(["bash", str(build_script)])
+        if result.returncode != 0:
+            print("[run.py] ERROR: build failed — see output above.", file=sys.stderr)
+            sys.exit(1)
+        print("[run.py] blackbox_decode built OK.", flush=True)
+
+_check_submodules()
+
 sys.path.insert(0, str(ROOT))
 from app.main import main
 main()
-
-from app.main import main
-main()
-
 
