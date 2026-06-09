@@ -191,7 +191,12 @@ def _download_vendor_zip(name: str, url: str, dest: Path) -> None:
 
     try:
         resp_cm = _open()
-    except ssl.SSLCertVerificationError:
+    except Exception as _exc:
+        # urllib wraps ssl.SSLCertVerificationError inside urllib.error.URLError,
+        # so we must inspect the cause rather than catching the SSL type directly.
+        _cause = getattr(_exc, "__cause__", _exc)
+        if not isinstance(_cause, ssl.SSLError):
+            raise
         print(
             "[run.py] SSL verification failed — retrying without certificate check.",
             flush=True,
