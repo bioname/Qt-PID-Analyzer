@@ -225,6 +225,51 @@ def _download_vendor_zip(name: str, url: str, dest: Path) -> None:
     print(f"[run.py] {name} extracted to {dest}", flush=True)
 
 
+def _download_blackbox_bin_win(dest: Path) -> None:
+    """Download pre-built blackbox_decode.exe from cleanflight GitHub release."""
+    import io
+    import ssl
+    import urllib.request
+    import zipfile
+
+    url = (
+        "https://github.com/cleanflight/blackbox-tools/releases/download/"
+        "v0.4.3/blackbox-tools-0.4.3-windows.zip"
+    )
+    print(f"[run.py] Downloading pre-built blackbox_decode.exe …", flush=True)
+
+    def _open(ctx=None):
+        kwargs: dict = {"timeout": 120}
+        if ctx is not None:
+            kwargs["context"] = ctx
+        return urllib.request.urlopen(url, **kwargs)  # noqa: S310
+
+    try:
+        resp_cm = _open()
+    except Exception as _exc:
+        _root = _exc.__cause__ or _exc.__context__ or _exc
+        if not isinstance(_root, ssl.SSLError):
+            raise
+        print("[run.py] SSL verification failed — retrying without certificate check.", flush=True)
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        resp_cm = _open(ctx)
+
+    with resp_cm as resp:
+        data = resp.read()
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(io.BytesIO(data)) as zf:
+        # Find blackbox_decode.exe anywhere inside the ZIP
+        candidates = [n for n in zf.namelist() if n.lower().endswith("blackbox_decode.exe")]
+        if not candidates:
+            print("[run.py] ERROR: blackbox_decode.exe not found in release ZIP.", file=sys.stderr)
+            sys.exit(1)
+        dest.write_bytes(zf.read(candidates[0]))
+    print(f"[run.py] blackbox_decode.exe downloaded to {dest}", flush=True)
+
+
 def _check_submodules() -> None:
     analyzer = ROOT / "vendor" / "PID-Analyzer" / "PID-Analyzer.py"
     blackbox  = ROOT / "vendor" / "blackbox-tools" / "Makefile"
@@ -295,17 +340,22 @@ def _check_submodules() -> None:
     bb_bin = ROOT / "bin" / ("blackbox_decode.exe" if _IS_WIN_NATIVE else "blackbox_decode")
     if not bb_bin.exists():
         print("[run.py] WARNING: blackbox_decode not built yet.", flush=True)
-        print("[run.py] Building now …", flush=True)
-        if _IS_WIN_NATIVE or _IS_MSYS2:
-            build_script = ROOT / "scripts" / "build_blackbox.bat"
-            result = subprocess.run([str(build_script)], shell=True)
+        # On native Windows without MSYS2 try to download the pre-built binary
+        # from the official cleanflight release instead of compiling from source.
+        if _IS_WIN_NATIVE:
+            _download_blackbox_bin_win(bb_bin)
         else:
-            build_script = ROOT / "scripts" / "build_blackbox.sh"
-            result = subprocess.run(["bash", str(build_script)])
-        if result.returncode != 0:
-            print("[run.py] ERROR: build failed — see output above.", file=sys.stderr)
-            sys.exit(1)
-        print("[run.py] blackbox_decode built OK.", flush=True)
+            print("[run.py] Building now …", flush=True)
+            if _IS_MSYS2:
+                build_script = ROOT / "scripts" / "build_blackbox.bat"
+                result = subprocess.run([str(build_script)], shell=True)
+            else:
+                build_script = ROOT / "scripts" / "build_blackbox.sh"
+                result = subprocess.run(["bash", str(build_script)])
+            if result.returncode != 0:
+                print("[run.py] ERROR: build failed — see output above.", file=sys.stderr)
+                sys.exit(1)
+            print("[run.py] blackbox_decode built OK.", flush=True)
 
 _check_submodules()
 
