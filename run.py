@@ -180,12 +180,30 @@ def _check_submodules() -> None:
     if not blackbox.exists():
         missing.append("vendor/blackbox-tools")
     if missing:
-        print("[run.py] ERROR: git submodules not initialised:", file=sys.stderr)
-        for m in missing:
-            print(f"  missing: {m}", file=sys.stderr)
-        print("\n[run.py] Run:  git submodule update --init --recursive",
-              file=sys.stderr)
-        sys.exit(1)
+        print("[run.py] Submodules not initialised — running git submodule update …",
+              flush=True)
+        result = subprocess.run(
+            ["git", "submodule", "update", "--init", "--recursive"],
+            cwd=str(ROOT),
+        )
+        if result.returncode != 0:
+            print("[run.py] ERROR: git submodule update failed.", file=sys.stderr)
+            print("[run.py] Make sure git is on PATH and you have internet access.",
+                  file=sys.stderr)
+            sys.exit(1)
+        # Verify again after clone
+        still_missing = []
+        if not analyzer.exists():
+            still_missing.append("vendor/PID-Analyzer")
+        if not blackbox.exists():
+            still_missing.append("vendor/blackbox-tools")
+        if still_missing:
+            print("[run.py] ERROR: submodules still missing after update:",
+                  file=sys.stderr)
+            for m in still_missing:
+                print(f"  {m}", file=sys.stderr)
+            sys.exit(1)
+        print("[run.py] Submodules OK.", flush=True)
 
     bb_bin = ROOT / "bin" / ("blackbox_decode.exe" if _IS_WIN_NATIVE else "blackbox_decode")
     if not bb_bin.exists():
