@@ -171,6 +171,33 @@ if not _in_venv():
     sys.exit(0)   # unreachable after execv/reexec, satisfies linters
 
 # ── Submodule check ───────────────────────────────────────────────────────────
+def _download_vendor_zip(name: str, url: str, dest: Path) -> None:
+    """Download a GitHub repo ZIP and extract it into dest/."""
+    import io
+    import urllib.request
+    import zipfile
+
+    zip_url = url + "/archive/refs/heads/master.zip"
+    print(f"[run.py] Downloading {name} from {zip_url} …", flush=True)
+    with urllib.request.urlopen(zip_url, timeout=60) as resp:  # noqa: S310
+        data = resp.read()
+    with zipfile.ZipFile(io.BytesIO(data)) as zf:
+        # ZIP contains a top-level folder like "PID-Analyzer-master/"
+        top = zf.namelist()[0].split("/")[0]
+        dest.mkdir(parents=True, exist_ok=True)
+        for member in zf.namelist():
+            rel = "/".join(member.split("/")[1:])   # strip top-level dir
+            if not rel:
+                continue
+            target = dest / rel
+            if member.endswith("/"):
+                target.mkdir(parents=True, exist_ok=True)
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(zf.read(member))
+    print(f"[run.py] {name} extracted to {dest}", flush=True)
+
+
 def _check_submodules() -> None:
     analyzer = ROOT / "vendor" / "PID-Analyzer" / "PID-Analyzer.py"
     blackbox  = ROOT / "vendor" / "blackbox-tools" / "Makefile"
@@ -182,54 +209,57 @@ def _check_submodules() -> None:
     if not missing:
         return
 
-    # Check if this is a proper git repository
-    if not (ROOT / ".git").exists():
-        print("[run.py] ERROR: this does not appear to be a git repository.", file=sys.stderr)
-        print("[run.py] You may have downloaded the ZIP instead of cloning.", file=sys.stderr)
-        print("[run.py] Please clone with git:", file=sys.stderr)
-        print("  git clone --recurse-submodules https://github.com/bioname/Qt-PID-Analyzer",
-              file=sys.stderr)
-        sys.exit(1)
+    # Try git submodule update if inside a git repo and git is available
+    git_repo = (ROOT / ".git").exists()
+    git_ok = False
+    if git_repo:
+        try:
+            git_ok = subprocess.run(
+                ["git", "--version"], capture_output=True,
+            ).returncode == 0
+        except FileNotFoundError:
+            git_ok = False
 
-    # Check git is available
-    try:
-        git_check = subprocess.run(
-            ["git", "--version"],
-            capture_output=True,
+    if git_repo and git_ok:
+        print("[run.py] Submodules not initialised — running git submodule update …",
+              flush=True)
+        result = subprocess.run(
+            ["git", "submodule", "update", "--init", "--recursive"],
+            cwd=str(ROOT),
         )
-        git_ok = git_check.returncode == 0
-    except FileNotFoundError:
-        git_ok = False
+        if result.returncode != 0:
+            print("[run.py] ERROR: git submodule update failed.", file=sys.stderr)
+            sys.exit(1)
+    else:
+        # Fallback: download ZIP archives directly (no git required)
+        if not git_repo:
+            print("[run.py] No .git directory — downloading vendor sources as ZIP …",
+                  flush=True)
+        else:
+            print("[run.py] git not found — downloading vendor sources as ZIP …",
+                  flush=True)
+        vendor = ROOT / "vendor"
+        if not analyzer.exists():
+            _download_vendor_zip(
+                "PID-Analyzer",
+                "https://github.com/bioname/PID-Analyzer",
+                vendor / "PID-Analyzer",
+            )
+        if not blackbox.exists():
+            _download_vendor_zip(
+                "blackbox-tools",
+                "https://github.com/cleanflight/blackbox-tools",
+                vendor / "blackbox-tools",
+            )
 
-    if not git_ok:
-        print("[run.py] ERROR: git not found on PATH.", file=sys.stderr)
-        print("[run.py] Install git and re-run:", file=sys.stderr)
-        print("  Debian/Ubuntu : apt install git", file=sys.stderr)
-        print("  Arch          : pacman -S git", file=sys.stderr)
-        print("  Gentoo        : emerge dev-vcs/git", file=sys.stderr)
-        print("  MSYS2         : pacman -S git", file=sys.stderr)
-        print("  macOS         : xcode-select --install", file=sys.stderr)
-        print("  Windows       : https://git-scm.com/download/win", file=sys.stderr)
-        sys.exit(1)
-
-    print("[run.py] Submodules not initialised — running git submodule update …",
-          flush=True)
-    result = subprocess.run(
-        ["git", "submodule", "update", "--init", "--recursive"],
-        cwd=str(ROOT),
-    )
-    if result.returncode != 0:
-        print("[run.py] ERROR: git submodule update failed.", file=sys.stderr)
-        print("[run.py] Check your internet connection.", file=sys.stderr)
-        sys.exit(1)
-    # Verify again after clone
+    # Final verification
     still_missing = []
     if not analyzer.exists():
         still_missing.append("vendor/PID-Analyzer")
     if not blackbox.exists():
         still_missing.append("vendor/blackbox-tools")
     if still_missing:
-        print("[run.py] ERROR: submodules still missing after update:", file=sys.stderr)
+        print("[run.py] ERROR: vendor sources still missing:", file=sys.stderr)
         for m in still_missing:
             print(f"  {m}", file=sys.stderr)
         sys.exit(1)
