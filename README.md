@@ -50,47 +50,62 @@ Qt-PID-Analyzer/
 
 ## Вимоги
 
-- **Python 3.8+**
-- **gcc / make** — для збірки `blackbox_decode` (одноразово)
-  - macOS: Xcode Command Line Tools (`xcode-select --install`)
-  - Linux: `gcc make` (пакети є в будь-якому дистрибутиві)
-  - Windows: MinGW через [MSYS2](https://www.msys2.org/)
-- Python-пакети встановлюються автоматично при першому запуску
+- **Python 3.8+** — єдина обов'язкова залежність
+- **gcc / make** — тільки для macOS і Linux (збірка `blackbox_decode`)
+  - macOS: `xcode-select --install`
+  - Linux: `gcc make` (є в будь-якому дистрибутиві)
+- **Windows**: gcc не потрібен — `run.py` завантажує готовий `blackbox_decode.exe` автоматично
+- **git**: не обов'язковий — можна просто завантажити ZIP з GitHub
 
 
 ## Встановлення та запуск
 
+### Варіант А — через ZIP (найпростіший, git не потрібен)
+
+1. Натисніть **Code → Download ZIP** на [сторінці репозиторію](https://github.com/bioname/Qt-PID-Analyzer)
+2. Розпакуйте архів
+3. Запустіть:
+
 ```bash
-# 1. Клонуємо з субмодулями
+python3 run.py          # macOS / Linux
+python  run.py          # Windows
+```
+
+### Варіант Б — через git
+
+```bash
 git clone --recurse-submodules https://github.com/bioname/Qt-PID-Analyzer
 cd Qt-PID-Analyzer
-
-# 2. Збираємо blackbox_decode (одноразово)
-./scripts/build_blackbox.sh        # macOS / Linux
-# або
-scripts\build_blackbox.bat         # Windows (MSYS2 shell)
-
-# 3. Запускаємо
 python3 run.py
+```
+
+---
 
 При **першому запуску** `run.py` автоматично:
-- Створює `.venv/`
-- Встановлює всі залежності через pip
-- Перезапускає себе з venv-Python
+- Створює `.venv/` і встановлює всі Python-залежності
+- Завантажує `vendor/PID-Analyzer` і `vendor/blackbox-tools` (якщо не клоновано через git)
+- **Windows**: завантажує готовий `blackbox_decode.exe` з GitHub Releases
+- **macOS / Linux**: збирає `blackbox_decode` з сорців (`gcc` потрібен)
+- Перезапускає себе з venv-Python і відкриває вікно
 
 **Кожен наступний** запуск — вікно відкривається одразу.
 
 
 ## Gentoo (без pip)
 
+```bash
 # Встановлюємо через portage
 emerge dev-python/PyQt6 dev-python/numpy dev-python/scipy \
        dev-python/pandas dev-python/matplotlib dev-python/six
 
 # Запускаємо — bootstrap знайде пакети через system-site-packages
+python3 run.py
+```
 
 Або перевірте залежності вручну:
+```bash
 python3 scripts/check_deps.py
+```
 
 
 ## Використання
@@ -99,18 +114,18 @@ python3 scripts/check_deps.py
 |---|---|
 | Drag & drop `.BBL` на ліву панель | Запускає аналіз |
 | Клік на сесію в дереві | Відкриває її результати |
-| Правий клік на сесію → Delete | Видаляє сесію та файли |
 
-
-## Субмодулі
-
-| Субмодуль | Репозиторій | Призначення |
-|---|---|---|
-| `vendor/PID-Analyzer` | [bioname/PID-Analyzer](https://github.com/bioname/PID-Analyzer) | Python-аналізатор |
-| `vendor/blackbox-tools` | [cleanflight/blackbox-tools](https://github.com/cleanflight/blackbox-tools) | Декодер `.BBL` → `.CSV` |
-
-
-## Ліцензія
+| Правий клік на сесію → Delete | Видаляє сесію та файли |```
 
 GPLv3 — успадковано від `blackbox-tools` та оригінального `PID-Analyzer`.
-```
+
+
+
+## Субмодулі## Ліцензія
+
+
+
+| Субмодуль | Репозиторій | Призначення |
+
+|---|---|---|| `vendor/blackbox-tools` | [cleanflight/blackbox-tools](https://github.com/cleanflight/blackbox-tools) | Декодер `.BBL` → `.CSV` |
+| `vendor/PID-Analyzer` | [bioname/PID-Analyzer](https://github.com/bioname/PID-Analyzer) | Python-аналізатор |

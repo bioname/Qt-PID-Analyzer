@@ -50,47 +50,62 @@ Qt-PID-Analyzer/
 
 ## Requirements
 
-- **Python 3.8+**
-- **gcc / make** — to compile `blackbox_decode` (one-time)
-  - macOS: Xcode Command Line Tools (`xcode-select --install`)
+- **Python 3.8+** — the only mandatory dependency
+- **gcc / make** — macOS and Linux only (to build `blackbox_decode`)
+  - macOS: `xcode-select --install`
   - Linux: `gcc make` (available in any distro)
-  - Windows: MinGW via [MSYS2](https://www.msys2.org/)
-- Python packages are installed automatically on the first run
+- **Windows**: no gcc needed — `run.py` downloads a pre-built `blackbox_decode.exe` automatically
+- **git**: optional — you can simply download the ZIP from GitHub
 
 
 ## Installation & running
 
+### Option A — download ZIP (easiest, no git required)
+
+1. Click **Code → Download ZIP** on the [repository page](https://github.com/bioname/Qt-PID-Analyzer)
+2. Extract the archive
+3. Launch:
+
 ```bash
-# 1. Clone with submodules
+python3 run.py          # macOS / Linux
+python  run.py          # Windows
+```
+
+### Option B — via git
+
+```bash
 git clone --recurse-submodules https://github.com/bioname/Qt-PID-Analyzer
 cd Qt-PID-Analyzer
-
-# 2. Build blackbox_decode (one-time)
-./scripts/build_blackbox.sh        # macOS / Linux
-# or
-scripts\build_blackbox.bat         # Windows (MSYS2 shell)
-
-# 3. Launch
 python3 run.py
+```
+
+---
 
 On the **first launch** `run.py` automatically:
-- Creates `.venv/`
-- Installs all dependencies via pip
-- Re-executes itself under the venv Python
+- Creates `.venv/` and installs all Python dependencies
+- Downloads `vendor/PID-Analyzer` and `vendor/blackbox-tools` (if not cloned via git)
+- **Windows**: downloads a pre-built `blackbox_decode.exe` from GitHub Releases
+- **macOS / Linux**: builds `blackbox_decode` from source (`gcc` required)
+- Re-executes itself under the venv Python and opens the window
 
 Every **subsequent** launch opens the window immediately.
 
 
 ## Gentoo (no pip)
 
+```bash
 # Install via portage
 emerge dev-python/PyQt6 dev-python/numpy dev-python/scipy \
        dev-python/pandas dev-python/matplotlib dev-python/six
 
 # Launch — bootstrap finds packages through system-site-packages
+python3 run.py
+```
 
 Or check dependencies manually:
+```bash
 python3 scripts/check_deps.py
+```
 
 
 ## Usage
@@ -99,18 +114,18 @@ python3 scripts/check_deps.py
 |---|---|
 | Drag & drop `.BBL` onto the left panel | Starts analysis |
 | Click a session in the tree | Opens its results |
-| Right-click a session → Delete | Removes session and its files |
 
-
-## Submodules
-
-| Submodule | Repository | Purpose |
-|---|---|---|
-| `vendor/PID-Analyzer` | [bioname/PID-Analyzer](https://github.com/bioname/PID-Analyzer) | Python analyser |
-| `vendor/blackbox-tools` | [cleanflight/blackbox-tools](https://github.com/cleanflight/blackbox-tools) | `.BBL` to `.CSV` decoder |
-
-
-## License
+| Right-click a session → Delete | Removes session and its files |```
 
 GPLv3 — inherited from `blackbox-tools` and the original `PID-Analyzer`.
-```
+
+
+
+## Submodules## License
+
+
+
+| Submodule | Repository | Purpose |
+
+|---|---|---|| `vendor/blackbox-tools` | [cleanflight/blackbox-tools](https://github.com/cleanflight/blackbox-tools) | `.BBL` to `.CSV` decoder |
+| `vendor/PID-Analyzer` | [bioname/PID-Analyzer](https://github.com/bioname/PID-Analyzer) | Python analyser |
