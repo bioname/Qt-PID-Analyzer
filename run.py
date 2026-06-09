@@ -174,12 +174,34 @@ if not _in_venv():
 def _download_vendor_zip(name: str, url: str, dest: Path) -> None:
     """Download a GitHub repo ZIP and extract it into dest/."""
     import io
+    import ssl
     import urllib.request
     import zipfile
 
     zip_url = url + "/archive/refs/heads/master.zip"
     print(f"[run.py] Downloading {name} from {zip_url} …", flush=True)
-    with urllib.request.urlopen(zip_url, timeout=60) as resp:  # noqa: S310
+
+    # Try verified SSL first; fall back to unverified on Windows embedded
+    # Python / nuget distributions that lack system CA certificates.
+    def _open(ctx=None):
+        kwargs = {"timeout": 60}
+        if ctx is not None:
+            kwargs["context"] = ctx
+        return urllib.request.urlopen(zip_url, **kwargs)  # noqa: S310
+
+    try:
+        resp_cm = _open()
+    except ssl.SSLCertVerificationError:
+        print(
+            "[run.py] SSL verification failed — retrying without certificate check.",
+            flush=True,
+        )
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        resp_cm = _open(ctx)
+
+    with resp_cm as resp:
         data = resp.read()
     with zipfile.ZipFile(io.BytesIO(data)) as zf:
         # ZIP contains a top-level folder like "PID-Analyzer-master/"
